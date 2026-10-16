@@ -1,0 +1,16 @@
+[submodule "libraries/s2sdk"]
+	path = libraries/s2sdk
+	url = https://github.com/alliedmodders/s2sdk.git
+	branch = cs2
+[submodule "libraries/metamod-source"]
+	path = libraries/metamod-source
+	url = https://github.com/alliedmodders/metamod-source.git
+	branch = master
+[submodule "libraries/spdlog"]
+	path = libraries/spdlog
+	url = https://github.com/gabime/spdlog.git
+	branch = v1.x
+[submodule "libraries/json"]
+	path = libraries/json
+	url = https://github.com/nlohmann/json.git
+	branch = master
