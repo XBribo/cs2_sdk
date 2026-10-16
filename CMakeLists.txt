@@ -13,6 +13,8 @@ add_library(cs2_sdk OBJECT
     src/utils/memory.cpp
     src/utils/rtti.cpp
     src/utils/platform.cpp
+    # Keep CreateInterface outside archives hidden by --exclude-libs.
+    libraries/s2sdk/interfaces/interfaces.cpp
     libraries/s2sdk/public/tier0/memoverride.cpp
     libraries/s2sdk/tier0_perproject/keyvalues3.cpp
     libraries/s2sdk/tier0_perproject/convar.cpp

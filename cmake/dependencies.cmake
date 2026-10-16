@@ -40,7 +40,6 @@ if(WIN32)
     target_link_libraries(cs2_sdk_dependencies INTERFACE psapi
         "${S2SDK_DIR}/lib/public/win64/tier0.lib"
         "${S2SDK_DIR}/lib/public/win64/mathlib.lib"
-        "${S2SDK_DIR}/lib/public/win64/interfaces.lib"
         "${S2SDK_DIR}/lib/public/win64/2015/libprotobuf.lib")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(cs2_sdk_dependencies INTERFACE _GNU_SOURCE POSIX _LINUX LINUX COMPILER_GCC
@@ -51,6 +50,5 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(cs2_sdk_dependencies INTERFACE
         "${S2SDK_DIR}/lib/linux64/libtier0.so"
         "${S2SDK_DIR}/lib/linux64/mathlib.a"
-        "${S2SDK_DIR}/lib/linux64/interfaces.a"
         "${S2SDK_DIR}/lib/linux64/release/libprotobuf.a" pthread dl)
 endif()
