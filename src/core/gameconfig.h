@@ -9,6 +9,8 @@ struct OffsetBinding
     const char* name;
 };
 
+// Returns <plugin>/gamedata.json without checking existence.
+std::string ComputePath();
 // Requires a JSON object; returns false on open or parse failure.
 bool LoadGamedata(const char* path, nlohmann::json& out);
 // Missing or non-string signatures return an empty string.

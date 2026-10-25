@@ -1,5 +1,7 @@
 #include "gameconfig.h"
+#include "../utils/platform.h"
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <utility>
 #include <vector>
@@ -14,6 +16,18 @@ void SetError(char* out, size_t outLen, const char* fmt, const char* a, const ch
         std::snprintf(out, outLen, fmt, a);
 }
 } // namespace
+std::string ComputePath()
+{
+    std::filesystem::path path(platform::SelfModulePath());
+    if (path.empty()) return "";
+    for (int i = 0; i < 3; ++i)
+    {
+        path = path.parent_path();
+        if (path.empty()) return "";
+    }
+    return (path / "gamedata.json").string();
+}
+
 bool LoadGamedata(const char* path, nlohmann::json& out)
 {
     std::ifstream ifs(path, std::ios::binary);
