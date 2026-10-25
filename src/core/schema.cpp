@@ -23,18 +23,19 @@ constexpr int kInvalid = -2;
 // Each base offset is relative to its immediate derived class.
 int FindField(const CSchemaClassInfo* info, const char* name, unsigned depth)
 {
-    if (!info || info->m_nSize <= 0 || depth > 32) return kInvalid;
-    if (info->m_nFieldCount && !info->m_pFields) return kInvalid;
-    for (uint16_t i = 0; i < info->m_nFieldCount; ++i)
+    if (!info || info->m_nSizeOf <= 0 || depth > 32) return kInvalid;
+    if (info->m_nNumFields && !info->m_pFields) return kInvalid;
+    for (uint16_t i = 0; i < info->m_nNumFields; ++i)
     {
         const auto& field = info->m_pFields[i];
-        if (!field.m_pszName || std::strcmp(field.m_pszName, name) != 0) continue;
-        return field.m_nSingleInheritanceOffset >= 0 && field.m_nSingleInheritanceOffset < info->m_nSize ? field.m_nSingleInheritanceOffset
-                                                                                                         : kInvalid;
+        if (!field.m_pName || std::strcmp(field.m_pName, name) != 0) continue;
+        return field.m_nSingleInheritanceOffset >= 0 && field.m_nSingleInheritanceOffset < info->m_nSizeOf
+                   ? field.m_nSingleInheritanceOffset
+                   : kInvalid;
     }
-    if (info->m_nBaseClassCount && !info->m_pBaseClasses) return kInvalid;
+    if (info->m_nNumBaseClasses && !info->m_pBaseClasses) return kInvalid;
     int result = kMissing;
-    for (uint8_t i = 0; i < info->m_nBaseClassCount; ++i)
+    for (uint8_t i = 0; i < info->m_nNumBaseClasses; ++i)
     {
         const auto& base = info->m_pBaseClasses[i];
         const int offset = FindField(base.m_pClass, name, depth + 1);
@@ -42,7 +43,7 @@ int FindField(const CSchemaClassInfo* info, const char* name, unsigned depth)
         if (offset == kMissing) continue;
         if (base.m_nOffset > static_cast<unsigned>(std::numeric_limits<int>::max() - offset)) return kInvalid;
         const int total = static_cast<int>(base.m_nOffset) + offset;
-        if (total >= info->m_nSize || result >= 0) return kInvalid;
+        if (total >= info->m_nSizeOf || result >= 0) return kInvalid;
         result = total;
     }
     return result;
