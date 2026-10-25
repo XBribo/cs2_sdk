@@ -41,6 +41,19 @@
 
 namespace cs2_sdk::modules {
 namespace {
+struct ModuleStorage
+{
+    std::unique_ptr<CModule> engine;
+    std::unique_ptr<CModule> server;
+};
+
+// Releases remaining references on plugin unload.
+ModuleStorage& Storage()
+{
+    static ModuleStorage storage;
+    return storage;
+}
+
 #ifdef _WIN32
 // Includes data as well as executable sections.
 ModuleInfo ModuleFromHandle(HINSTANCE handle)
@@ -145,28 +158,39 @@ CModule::CModule(const char* relativeDirectory, const char* moduleName)
     if (!gameDirectory || !gameDirectory[0]) return;
 
     m_path = std::string(gameDirectory) + relativeDirectory + kModulePrefix + moduleName + kModuleExtension;
-    m_hModule = dlmount(m_path.c_str());
+    m_hModule.reset(dlmount(m_path.c_str()));
     if (!m_hModule) return;
 
 #ifdef _WIN32
-    m_image = ModuleFromHandle(reinterpret_cast<HMODULE>(m_hModule));
+    m_image = ModuleFromHandle(static_cast<HMODULE>(m_hModule.get()));
     m_code = ExecutableSections(m_image);
+    if (!m_image) m_hModule.reset();
 #else
-    if (!FillModuleFromHandle(static_cast<HINSTANCE>(m_hModule), m_image, m_code))
-    {
-        dlclose(m_hModule);
-        m_hModule = nullptr;
-    }
+    if (!FillModuleFromHandle(static_cast<HINSTANCE>(m_hModule.get()), m_image, m_code)) m_hModule.reset();
 #endif
 }
+
+void CModule::HandleDeleter::operator()(void* handle) const { dlclose(static_cast<HINSTANCE>(handle)); }
 
 CModule* engine = nullptr;
 CModule* server = nullptr;
 
 void Initialize()
 {
-    if (!engine) engine = new CModule(kRootBin, "engine2");
-    if (!server) server = new CModule(kGameBin, "server");
+    auto& storage = Storage();
+    if (!storage.engine || !*storage.engine) storage.engine = std::make_unique<CModule>(kRootBin, "engine2");
+    engine = storage.engine.get();
+    if (!storage.server || !*storage.server) storage.server = std::make_unique<CModule>(kGameBin, "server");
+    server = storage.server.get();
+}
+
+void Shutdown()
+{
+    engine = nullptr;
+    server = nullptr;
+    auto& storage = Storage();
+    storage.server.reset();
+    storage.engine.reset();
 }
 
 bool ParseSigString(const std::string& sigStr, std::vector<uint8_t>& outBytes, std::vector<bool>& outWild)

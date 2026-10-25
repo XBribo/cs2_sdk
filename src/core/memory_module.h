@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -44,6 +45,11 @@ class CModule
     // Adds the platform's module prefix and extension to moduleName.
     CModule(const char* relativeDirectory, const char* moduleName);
 
+    // Releases the owned loader reference.
+    ~CModule() = default;
+    CModule(const CModule&) = delete;
+    CModule& operator=(const CModule&) = delete;
+
     // False if loading or image discovery failed.
     explicit operator bool() const { return static_cast<bool>(m_image); }
 
@@ -57,12 +63,18 @@ class CModule
     const char* Path() const { return m_path.c_str(); }
 
   private:
+    struct HandleDeleter
+    {
+        // Drops only this loader reference.
+        void operator()(void* handle) const;
+    };
     std::string m_path;
-    void* m_hModule = nullptr;
+    std::unique_ptr<void, HandleDeleter> m_hModule;
     ModuleInfo m_image;
     ModuleInfo m_code;
 };
 
+// Borrowed; valid until Shutdown or a failed-load retry.
 extern CModule* engine;
 extern CModule* server;
 
@@ -75,8 +87,10 @@ ModuleInfo FindSection(const ModuleInfo& image, const char* name);
 ModuleInfo ExecutableSections(const ModuleInfo& image);
 #endif
 
-// Loads the engine and server modules once for signature resolution.
+// Keeps successful loads and retries failed ones.
 void Initialize();
+// Call after removing hooks and releasing borrowed module views.
+void Shutdown();
 
 // Accepts hexadecimal bytes and ? or ?? wildcards; rejects an empty signature.
 bool ParseSigString(const std::string& signature, std::vector<uint8_t>& bytes, std::vector<bool>& wildcards);

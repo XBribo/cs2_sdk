@@ -11,7 +11,7 @@ enum class Level
     Error
 };
 
-// Creates per-plugin console and daily-file sinks.
+// Creates sinks; failed or repeated Init leaves the current logger intact.
 bool Init(const char* baseDir, const char* pluginName, char* error, size_t maxlen);
 // Flushes and unregisters only this plugin's logger.
 void Close();
