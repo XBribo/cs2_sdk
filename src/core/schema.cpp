@@ -16,29 +16,33 @@ ISchemaSystem* g_system = nullptr;
 CSchemaSystemTypeScope* g_scope = nullptr;
 using FieldMap = std::unordered_map<std::string, int>;
 std::unordered_map<std::string, FieldMap> g_cache;
+// Keep invalid branches distinct from missing fields.
+constexpr int kMissing = -1;
+constexpr int kInvalid = -2;
 
 // Each base offset is relative to its immediate derived class.
 int FindField(const CSchemaClassInfo* info, const char* name, unsigned depth)
 {
-    if (!info || info->m_nSize <= 0 || depth > 32) return -1;
-    if (info->m_nFieldCount && !info->m_pFields) return -1;
+    if (!info || info->m_nSize <= 0 || depth > 32) return kInvalid;
+    if (info->m_nFieldCount && !info->m_pFields) return kInvalid;
     for (uint16_t i = 0; i < info->m_nFieldCount; ++i)
     {
         const auto& field = info->m_pFields[i];
         if (!field.m_pszName || std::strcmp(field.m_pszName, name) != 0) continue;
         return field.m_nSingleInheritanceOffset >= 0 && field.m_nSingleInheritanceOffset < info->m_nSize ? field.m_nSingleInheritanceOffset
-                                                                                                         : -1;
+                                                                                                         : kInvalid;
     }
-    if (!info->m_pBaseClasses) return -1;
-    int result = -1;
+    if (info->m_nBaseClassCount && !info->m_pBaseClasses) return kInvalid;
+    int result = kMissing;
     for (uint8_t i = 0; i < info->m_nBaseClassCount; ++i)
     {
         const auto& base = info->m_pBaseClasses[i];
         const int offset = FindField(base.m_pClass, name, depth + 1);
-        if (offset < 0) continue;
-        if (base.m_nOffset > static_cast<unsigned>(std::numeric_limits<int>::max() - offset)) return -1;
+        if (offset == kInvalid) return kInvalid;
+        if (offset == kMissing) continue;
+        if (base.m_nOffset > static_cast<unsigned>(std::numeric_limits<int>::max() - offset)) return kInvalid;
         const int total = static_cast<int>(base.m_nOffset) + offset;
-        if (total >= info->m_nSize || result >= 0) return -1;
+        if (total >= info->m_nSize || result >= 0) return kInvalid;
         result = total;
     }
     return result;
@@ -81,7 +85,7 @@ int GetFieldOffset(const char* className, const char* fieldName)
     }
     const int offset = FindField(info, fieldName, 0);
     if (offset >= 0) g_cache[className].emplace(fieldName, offset);
-    return offset;
+    return offset >= 0 ? offset : -1;
 }
 
 bool ResolveFields(std::span<const FieldBinding> fields, char* error, size_t maxlen)

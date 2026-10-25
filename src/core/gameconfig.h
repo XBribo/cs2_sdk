@@ -13,7 +13,7 @@ struct OffsetBinding
 bool LoadGamedata(const char* path, nlohmann::json& out);
 // Missing or non-string signatures return an empty string.
 std::string FindPlatformSig(const nlohmann::json& gamedata, const std::string& name);
-// Returns the platform-specific offset or the supplied fallback.
+// Returns fallback for missing, non-integer or out-of-range offsets.
 int FindPlatformOffset(const nlohmann::json& gamedata, const std::string& name, int fallback);
 // Overrides bindings from gamedata, retaining each current value when unavailable.
 void LoadOffsets(const nlohmann::json& gamedata, std::span<const OffsetBinding> offsets);

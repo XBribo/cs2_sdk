@@ -1,6 +1,7 @@
 #include "gameconfig.h"
 #include <cstdio>
 #include <fstream>
+#include <utility>
 #include <vector>
 namespace cs2_sdk::gameconfig {
 namespace {
@@ -53,7 +54,13 @@ int FindPlatformOffset(const nlohmann::json& gamedata, const std::string& name, 
     if (offIt == it->end() || !offIt->is_object()) return fallback;
     auto platformIt = offIt->find(PlatformName());
     if (platformIt == offIt->end() || !platformIt->is_number_integer()) return fallback;
-    return platformIt->get<int>();
+    if (platformIt->is_number_unsigned())
+    {
+        const auto value = platformIt->get<nlohmann::json::number_unsigned_t>();
+        return std::in_range<int>(value) ? static_cast<int>(value) : fallback;
+    }
+    const auto value = platformIt->get<nlohmann::json::number_integer_t>();
+    return std::in_range<int>(value) ? static_cast<int>(value) : fallback;
 }
 void LoadOffsets(const nlohmann::json& gamedata, std::span<const OffsetBinding> offsets)
 {
