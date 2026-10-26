@@ -35,7 +35,7 @@ struct ModuleInfo
     unsigned char* base = nullptr;
     size_t size = 0;
     std::vector<ModuleSegment> segments;
-    // Does not check segment coverage or current page permissions.
+    // Checks base and size only.
     explicit operator bool() const { return base != nullptr && size != 0; }
 };
 
@@ -50,22 +50,22 @@ class CModule
     CModule(const CModule&) = delete;
     CModule& operator=(const CModule&) = delete;
 
-    // False if loading or image discovery failed.
+    // Reports a loaded module image.
     explicit operator bool() const { return static_cast<bool>(m_image); }
 
-    // Includes data segments; use Code() for instruction signatures.
+    // Returns the full image, including data segments.
     const ModuleInfo& Image() const { return m_image; }
 
-    // Contains executable segments only.
+    // Returns executable segments for instruction signatures.
     const ModuleInfo& Code() const { return m_code; }
 
-    // The path passed to the platform loader, even if loading failed.
+    // Returns the requested module path.
     const char* Path() const { return m_path.c_str(); }
 
   private:
     struct HandleDeleter
     {
-        // Drops only this loader reference.
+        // Releases the owned loader reference.
         void operator()(void* handle) const;
     };
     std::string m_path;
@@ -78,10 +78,10 @@ class CModule
 extern CModule* engine;
 extern CModule* server;
 
-// Adjacent segments may cover a range; gaps and ranges outside the image fail.
+// Checks complete range coverage within the image segments.
 bool ContainsRange(const ModuleInfo& module, const void* address, size_t size);
 #ifdef _WIN32
-// Retains the image base so PE RVAs still resolve against the full image.
+// Selects a section while preserving the image base for PE RVAs.
 ModuleInfo FindSection(const ModuleInfo& image, const char* name);
 // Selects sections marked both readable and executable.
 ModuleInfo ExecutableSections(const ModuleInfo& image);

@@ -9,7 +9,7 @@ struct OffsetBinding
     const char* name;
 };
 
-// Returns <plugin>/gamedata.json without checking existence.
+// Builds the <plugin>/gamedata.json path.
 std::string ComputePath();
 // Requires a JSON object; returns false on open or parse failure.
 bool LoadGamedata(const char* path, nlohmann::json& out);
@@ -17,9 +17,9 @@ bool LoadGamedata(const char* path, nlohmann::json& out);
 std::string FindPlatformSig(const nlohmann::json& gamedata, const std::string& name);
 // Returns fallback for missing, non-integer or out-of-range offsets.
 int FindPlatformOffset(const nlohmann::json& gamedata, const std::string& name, int fallback);
-// Overrides bindings from gamedata, retaining each current value when unavailable.
+// Applies valid gamedata offsets, preserving other bindings.
 void LoadOffsets(const nlohmann::json& gamedata, std::span<const OffsetBinding> offsets);
-// Gamedata uses "windows" or "linux", not the module filename suffix.
+// Returns the gamedata platform key: "windows" or "linux".
 const char* PlatformName();
 // Requires exactly one match in the supplied module view.
 void* ResolveSig(const nlohmann::json& gamedata, const modules::ModuleInfo& module, const char* name, char* errorOut, size_t errorOutLen);

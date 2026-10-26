@@ -10,20 +10,20 @@ namespace cs2_sdk::rtti {
 namespace {
 using modules::ModuleInfo;
 
-// The caller may omit the diagnostic buffer.
+// Writes an optional diagnostic.
 void SetError(char* error, size_t maxlen, const char* message, const char* name)
 {
     if (error && maxlen) std::snprintf(error, maxlen, message, name);
 }
 
-// Uses KHook's original bytes, with no candidate limit.
+// Finds all exact matches in KHook's original bytes.
 std::vector<void*> FindExact(const ModuleInfo& module, const void* bytes, size_t size)
 {
     const auto* first = static_cast<const uint8_t*>(bytes);
     return modules::FindPatternMatchesIn(module, std::vector<uint8_t>(first, first + size), std::vector<bool>(size, false), 0);
 }
 
-// Metadata must fit within the selected module segments.
+// Reads metadata within the selected module segments.
 template <typename T> bool ReadAt(const ModuleInfo& module, const void* address, T& value)
 {
     return modules::ContainsRange(module, address, sizeof(T)) && memory::Read(address, 0, value);
@@ -36,7 +36,7 @@ const void* Before(const void* address, size_t distance)
     return value >= distance ? reinterpret_cast<const void*>(value - distance) : nullptr;
 }
 
-// Rejects unaligned/non-callable address points and deduplicates overlapping views.
+// Adds unique, aligned vtables with a callable first entry.
 void AddCandidate(
     const ModuleInfo& module, const void* header, ptrdiff_t offset, uint32_t construction, std::vector<VirtualTable>& candidates)
 {

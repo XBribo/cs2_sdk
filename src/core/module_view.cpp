@@ -35,7 +35,7 @@ bool ContainsRange(const ModuleInfo& module, const void* address, size_t size)
 
 #ifdef _WIN32
 namespace {
-// A valid image offset must also fall inside the selected segments.
+// Reads image bytes within the selected segments.
 bool ReadImage(const ModuleInfo& image, size_t offset, void* output, size_t size)
 {
     if (offset > image.size || size > image.size - offset) return false;

@@ -25,7 +25,7 @@ bool Init(ISchemaSystem* system, char* error = nullptr, size_t maxlen = 0);
 int GetFieldOffset(const char* className, const char* fieldName);
 // Resolves every binding, writes -1 for missing fields, and reports the first failure.
 bool ResolveFields(std::span<const FieldBinding> fields, char* error = nullptr, size_t maxlen = 0);
-// Sums inline embedded-member offsets; pointer/handle indirections must be read separately.
+// Sums inline embedded-member offsets; dereference pointers/handles separately.
 int GetEmbeddedFieldOffset(std::span<const Field> fields, char* error = nullptr, size_t maxlen = 0);
 // Clears borrowed interfaces and cached offsets on plugin unload.
 void Reset();

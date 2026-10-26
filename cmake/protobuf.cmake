@@ -1,4 +1,4 @@
-# Generates only from the pinned s2sdk definitions, using its host protoc.
+# Generate pinned s2sdk messages with its host protoc.
 if(CMAKE_HOST_WIN32)
     set(_protoc "${S2SDK_DIR}/devtools/bin/protoc.exe")
 elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")

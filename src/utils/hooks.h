@@ -6,7 +6,7 @@
 
 namespace cs2_sdk::hooks {
 
-// Owns a typed KHook registration and synchronously removes it before destruction.
+// Owns a typed KHook registration with synchronous teardown.
 template <typename RETURN, typename... ARGS> class NativeHook
 {
     class CheckedFunction : public KHook::Function<RETURN, ARGS...>
@@ -21,7 +21,7 @@ template <typename RETURN, typename... ARGS> class NativeHook
   public:
     using Callback = KHook::Return<RETURN> (*)(ARGS...);
 
-    // Installs one function entry without taking ownership of the shared KHook engine.
+    // Registers a function with the shared KHook engine.
     bool Install(void* target, Callback pre, Callback post = nullptr)
     {
         if (m_hook || !target || !KHook::__exported__khook) return false;
@@ -34,9 +34,9 @@ template <typename RETURN, typename... ARGS> class NativeHook
 
     // Waits for active invocations before releasing callback storage.
     void Remove() { m_hook.reset(); }
-    // Reports a successfully accepted registration.
+    // Reports an active registration.
     bool Active() const { return m_hook != nullptr; }
-    // Bypasses hooks only for explicit raw engine operations, never callback forwarding.
+    // Calls raw engine code; callbacks forward through KHook actions.
     RETURN CallOriginal(ARGS... args) { return m_hook->CallOriginal(args...); }
 };
 

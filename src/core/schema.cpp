@@ -16,7 +16,7 @@ ISchemaSystem* g_system = nullptr;
 CSchemaSystemTypeScope* g_scope = nullptr;
 using FieldMap = std::unordered_map<std::string, int>;
 std::unordered_map<std::string, FieldMap> g_cache;
-// Keep invalid branches distinct from missing fields.
+// Distinct results for missing fields and invalid branches.
 constexpr int kMissing = -1;
 constexpr int kInvalid = -2;
 
@@ -49,7 +49,7 @@ int FindField(const CSchemaClassInfo* info, const char* name, unsigned depth)
     return result;
 }
 
-// The caller may omit the diagnostic buffer.
+// Writes an optional diagnostic and returns failure.
 bool Fail(char* error, size_t maxlen, const char* message)
 {
     if (error && maxlen) std::snprintf(error, maxlen, "%s", message);

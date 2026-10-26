@@ -7,7 +7,7 @@
 #include <vector>
 namespace cs2_sdk::gameconfig {
 namespace {
-// The caller may omit the diagnostic buffer.
+// Writes an optional diagnostic.
 void SetError(char* out, size_t outLen, const char* fmt, const char* a, const char* b = nullptr)
 {
     if (!out || outLen == 0) return;

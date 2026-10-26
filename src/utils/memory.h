@@ -6,18 +6,18 @@
 #include <type_traits>
 
 namespace cs2_sdk::memory {
-// Copies an untrusted process range; a failed copy may partially fill output.
+// Reads process memory; failure may partially fill output.
 bool ReadBytes(const void* address, void* output, size_t size);
-// Does not change page permissions; failure may leave a partial write.
+// Writes with existing page permissions; failure may partially update memory.
 bool WriteBytes(void* address, const void* value, size_t size);
-// Checks current access permissions, not object lifetime or future accessibility.
+// Checks current readability; object lifetime is caller-managed.
 bool IsReadable(const void* address, size_t size);
-// Checks whether the current mapping permits instruction execution.
+// Checks current execution permissions.
 bool IsExecutableAddress(const void* address);
 // Reads a signed rel32 and resolves it relative to the instruction end.
 void* ResolveRelativeAddress(const void* instruction, size_t displacementOffset, size_t instructionLength);
 
-// Leaves output unchanged unless the entire value was read.
+// Reads a complete value, preserving output on failure.
 template <typename T> bool Read(const void* base, size_t offset, T& output)
 {
     static_assert(std::is_trivially_copyable_v<T>);

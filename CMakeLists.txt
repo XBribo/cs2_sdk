@@ -13,7 +13,7 @@ add_library(cs2_sdk OBJECT
     src/utils/memory.cpp
     src/utils/rtti.cpp
     src/utils/platform.cpp
-    # Keep CreateInterface outside archives hidden by --exclude-libs.
+    # Compile CreateInterface directly to preserve its export with --exclude-libs.
     libraries/s2sdk/interfaces/interfaces.cpp
     libraries/s2sdk/public/tier0/memoverride.cpp
     libraries/s2sdk/tier0_perproject/keyvalues3.cpp
@@ -34,7 +34,7 @@ function(cs2_sdk_configure_plugin target)
     if(MSVC)
         target_link_options(${target} PRIVATE /NODEFAULTLIB:LIBCMTD)
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        # Do not interpose another plugin's static protobuf or logging registry.
+        # Isolate static protobuf and logging symbols between plugins.
         target_link_options(${target} PRIVATE "LINKER:-z,defs" "LINKER:--exclude-libs,ALL")
         set_target_properties(${target} PROPERTIES SKIP_BUILD_RPATH TRUE BUILD_RPATH "" INSTALL_RPATH "")
     endif()

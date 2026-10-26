@@ -14,10 +14,10 @@
 
 namespace cs2_sdk::memory {
 namespace {
-// Validates address arithmetic before any operating-system access.
+// Validates the address range before OS access.
 bool ValidRange(const void* address, size_t size) { return address && size && size <= UINTPTR_MAX - reinterpret_cast<uintptr_t>(address); }
 
-// Checks a complete range without caching mappings across operations.
+// Checks current mappings across the complete range.
 bool HasAccess(const void* address, size_t size, bool executable)
 {
     if (!ValidRange(address, size)) return false;

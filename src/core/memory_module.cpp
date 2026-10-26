@@ -55,7 +55,7 @@ ModuleStorage& Storage()
 }
 
 #ifdef _WIN32
-// Includes data as well as executable sections.
+// Discovers data and executable sections.
 ModuleInfo ModuleFromHandle(HINSTANCE handle)
 {
     ModuleInfo out;

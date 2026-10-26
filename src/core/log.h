@@ -13,8 +13,8 @@ enum class Level
 
 // Creates sinks; failed or repeated Init leaves the current logger intact.
 bool Init(const char* baseDir, const char* pluginName, char* error, size_t maxlen);
-// Flushes and unregisters only this plugin's logger.
+// Flushes and unregisters this plugin's logger.
 void Close();
-// Formats existing printf-style diagnostics for the shared logger.
+// Formats printf-style diagnostics for the plugin logger.
 void Write(Level level, const char* format, ...);
 } // namespace cs2_sdk::log

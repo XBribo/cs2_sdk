@@ -1,4 +1,4 @@
-# PlayerCommand inherits CSGOUserCmdPB, so generated message classes cannot be final.
+# Allow PlayerCommand to inherit the generated CSGOUserCmdPB.
 file(GLOB headers "${GENERATED_DIR}/*.pb.h")
 foreach(header IN LISTS headers)
     file(READ "${header}" content)
