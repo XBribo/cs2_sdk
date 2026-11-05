@@ -4,5 +4,5 @@ updates:
     directory: "/"
     schedule:
       interval: "cron"
-      cronjob: "0 9 * * *"
+      cronjob: "0 * * * *"
       timezone: "Asia/Singapore"
