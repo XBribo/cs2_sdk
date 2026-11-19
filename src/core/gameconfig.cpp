@@ -108,8 +108,12 @@ bool LoadRequiredOffsets(const nlohmann::json& gamedata, std::span<const OffsetB
     for (const OffsetBinding& offset : offsets)
     {
         const int value = FindPlatformOffset(gamedata, offset.name, -1);
-        *offset.target = value >= 0 ? value : -1;
-        if (value >= 0) continue;
+        if (value >= 0)
+        {
+            *offset.target = value;
+            continue;
+        }
+        *offset.target = -1;
         if (!invalid.empty()) invalid += ", ";
         invalid += '\'';
         invalid += offset.name;
@@ -148,9 +152,7 @@ void* ResolveSig(const nlohmann::json& gamedata, const modules::ModuleInfo& modu
     }
     if (matches->size() != 1)
     {
-        if (errorOut && errorOutLen)
-            std::snprintf(errorOut, errorOutLen, "sig '%s' expected one executable match, got %s", name,
-                          matches->empty() ? "0" : "2 or more");
+        SetError(errorOut, errorOutLen, "sig '%s' expected one executable match, got %s", name, matches->empty() ? "0" : "2 or more");
         return nullptr;
     }
     return matches->front();
