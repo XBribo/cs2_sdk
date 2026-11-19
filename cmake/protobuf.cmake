@@ -34,8 +34,7 @@ add_custom_command(OUTPUT ${_proto_outputs}
         "--proto_path=${S2SDK_DIR}/game/shared"
         "--proto_path=${S2SDK_DIR}/thirdparty/protobuf-3.21.8/src"
         ${_proto_inputs}
-    COMMAND "${CMAKE_COMMAND}" "-DGENERATED_DIR=${_generated_dir}" -P "${CMAKE_CURRENT_LIST_DIR}/strip_proto_final.cmake"
-    DEPENDS "${_protoc}" ${_proto_inputs} "${CMAKE_CURRENT_LIST_DIR}/strip_proto_final.cmake"
+    DEPENDS "${_protoc}" ${_proto_inputs}
     COMMENT "Generating pinned s2sdk protobuf messages"
     VERBATIM
 )

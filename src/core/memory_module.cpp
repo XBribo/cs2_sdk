@@ -9,7 +9,6 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <string>
 #include <vector>
 
@@ -25,12 +24,7 @@
 #include <winnt.h>
 #else
 #include <dlfcn.h>
-#include <elf.h>
-#include <fcntl.h>
 #include <link.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #endif
 
 #include <tier0/platform.h>
@@ -86,65 +80,31 @@ void AddSegment(ModuleInfo& module, uintptr_t address, size_t size)
     if (end > currentEnd) module.size = static_cast<size_t>(end - reinterpret_cast<uintptr_t>(module.base));
 }
 
-// Resolves ELF load segments directly from the handle's link_map.
+// Use the loader's view: the file at l_name may have been replaced since dlopen.
 bool FillModuleFromHandle(HINSTANCE handle, ModuleInfo& image, ModuleInfo& code)
 {
-    if (!handle) return false;
+    link_map* map = nullptr;
+    if (dlinfo(handle, RTLD_DI_LINKMAP, &map) != 0 || !map) return false;
 
-    link_map* linkMap = nullptr;
-    if (dlinfo(handle, RTLD_DI_LINKMAP, &linkMap) != 0 || !linkMap || !linkMap->l_name || !linkMap->l_name[0]) return false;
-
-    const int fileDescriptor = open(linkMap->l_name, O_RDONLY);
-    if (fileDescriptor == -1) return false;
-
-    struct stat fileStatus{};
-    if (fstat(fileDescriptor, &fileStatus) != 0 || fileStatus.st_size <= 0)
+    struct Views
     {
-        close(fileDescriptor);
-        return false;
-    }
-
-    const size_t fileSize = static_cast<size_t>(fileStatus.st_size);
-    void* mappedFile = mmap(nullptr, fileSize, PROT_READ, MAP_PRIVATE, fileDescriptor, 0);
-    if (mappedFile == MAP_FAILED)
-    {
-        close(fileDescriptor);
-        return false;
-    }
-
-    if (fileSize < sizeof(ElfW(Ehdr)))
-    {
-        munmap(mappedFile, fileSize);
-        close(fileDescriptor);
-        return false;
-    }
-
-    auto* elfHeader = static_cast<ElfW(Ehdr)*>(mappedFile);
-    const size_t programHeaderOffset = static_cast<size_t>(elfHeader->e_phoff);
-    const size_t programHeaderSize = static_cast<size_t>(elfHeader->e_phnum) * elfHeader->e_phentsize;
-    const bool validElf = std::memcmp(elfHeader->e_ident, ELFMAG, SELFMAG) == 0 && elfHeader->e_ident[EI_CLASS] == ELFCLASS64 &&
-                          programHeaderOffset <= fileSize && programHeaderSize <= fileSize - programHeaderOffset;
-    if (!validElf)
-    {
-        munmap(mappedFile, fileSize);
-        close(fileDescriptor);
-        return false;
-    }
-
-    auto* programHeaders = reinterpret_cast<ElfW(Phdr)*>(static_cast<unsigned char*>(mappedFile) + programHeaderOffset);
-    for (int i = 0; i < elfHeader->e_phnum; ++i)
-    {
-        const ElfW(Phdr) & programHeader = programHeaders[i];
-        if (programHeader.p_type != PT_LOAD || programHeader.p_memsz == 0) continue;
-
-        const uintptr_t address = static_cast<uintptr_t>(linkMap->l_addr + programHeader.p_vaddr);
-        const size_t size = static_cast<size_t>(programHeader.p_memsz);
-        AddSegment(image, address, size);
-        if ((programHeader.p_flags & PF_X) != 0) AddSegment(code, address, size);
-    }
-
-    munmap(mappedFile, fileSize);
-    close(fileDescriptor);
+        ElfW(Addr) base;
+        ModuleInfo& image;
+        ModuleInfo& code;
+    } views{ map->l_addr, image, code };
+    dl_iterate_phdr([](dl_phdr_info* info, size_t, void* context) {
+        auto& views = *static_cast<Views*>(context);
+        if (info->dlpi_addr != views.base) return 0;
+        for (ElfW(Half) i = 0; i < info->dlpi_phnum; ++i)
+        {
+            const auto& header = info->dlpi_phdr[i];
+            if (header.p_type != PT_LOAD) continue;
+            const uintptr_t address = info->dlpi_addr + header.p_vaddr;
+            AddSegment(views.image, address, header.p_memsz);
+            if (header.p_flags & PF_X) AddSegment(views.code, address, header.p_memsz);
+        }
+        return 1;
+    }, &views);
     return static_cast<bool>(image);
 }
 #endif
@@ -232,8 +192,15 @@ void* FindPatternIn(const ModuleInfo& module, const std::vector<uint8_t>& patter
 std::vector<void*>
 FindPatternMatchesIn(const ModuleInfo& module, const std::vector<uint8_t>& pattern, const std::vector<bool>& wild, size_t maxMatches)
 {
+    return TryFindPatternMatchesIn(module, pattern, wild, maxMatches).value_or(std::vector<void*>{});
+}
+
+std::optional<std::vector<void*>>
+TryFindPatternMatchesIn(const ModuleInfo& module, const std::vector<uint8_t>& pattern, const std::vector<bool>& wild, size_t maxMatches)
+{
+    if (!KHook::__exported__khook) return std::nullopt;
     std::vector<void*> matches;
-    if (!module || pattern.empty() || pattern.size() != wild.size() || !KHook::__exported__khook) return matches;
+    if (!module || pattern.empty() || pattern.size() != wild.size()) return matches;
     constexpr char hex[] = "0123456789ABCDEF";
     std::string signature;
     for (size_t i = 0; i < pattern.size(); ++i)

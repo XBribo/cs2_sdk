@@ -23,6 +23,7 @@ add_library(cs2_sdk::sdk ALIAS cs2_sdk)
 cs2_sdk_configure_target(cs2_sdk)
 target_link_libraries(cs2_sdk PUBLIC cs2_sdk_dependencies spdlog::spdlog)
 target_include_directories(cs2_sdk PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/metamod"
 )

@@ -3,7 +3,7 @@ name: Build
 on:
   pull_request:
     branches: [main]
-    paths: ['libraries/*']
+    paths: ['libraries/*', 'include/**', 'src/**', 'cmake/**', 'CMakeLists.txt', '.github/workflows/build.yml']
 
 permissions:
   contents: read

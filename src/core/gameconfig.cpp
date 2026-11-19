@@ -30,17 +30,37 @@ std::string ComputePath()
 
 bool LoadGamedata(const char* path, nlohmann::json& out)
 {
-    std::ifstream ifs(path, std::ios::binary);
-    if (!ifs.is_open()) return false;
-    try
+    return LoadGamedata(path, out, nullptr, 0);
+}
+bool LoadGamedata(const char* path, nlohmann::json& out, char* error, size_t maxlen)
+{
+    if (!path || !*path)
     {
-        out = nlohmann::json::parse(ifs);
-    }
-    catch (...)
-    {
+        SetError(error, maxlen, "%s", "gamedata path is empty");
         return false;
     }
-    return out.is_object();
+    std::ifstream ifs(path, std::ios::binary);
+    if (!ifs.is_open())
+    {
+        SetError(error, maxlen, "cannot open gamedata: %s", path);
+        return false;
+    }
+    try
+    {
+        auto parsed = nlohmann::json::parse(ifs);
+        if (!parsed.is_object())
+        {
+            SetError(error, maxlen, "gamedata root must be an object: %s", path);
+            return false;
+        }
+        out = std::move(parsed);
+    }
+    catch (const nlohmann::json::exception& ex)
+    {
+        SetError(error, maxlen, "invalid gamedata JSON in %s: %s", path, ex.what());
+        return false;
+    }
+    return true;
 }
 const char* PlatformName()
 {
@@ -82,6 +102,24 @@ void LoadOffsets(const nlohmann::json& gamedata, std::span<const OffsetBinding> 
         *offset.target = FindPlatformOffset(gamedata, offset.name, *offset.target);
 }
 
+bool LoadRequiredOffsets(const nlohmann::json& gamedata, std::span<const OffsetBinding> offsets, char* error, size_t maxlen)
+{
+    std::string invalid;
+    for (const OffsetBinding& offset : offsets)
+    {
+        const int value = FindPlatformOffset(gamedata, offset.name, -1);
+        *offset.target = value >= 0 ? value : -1;
+        if (value >= 0) continue;
+        if (!invalid.empty()) invalid += ", ";
+        invalid += '\'';
+        invalid += offset.name;
+        invalid += '\'';
+    }
+    if (invalid.empty()) return true;
+    SetError(error, maxlen, "Required gamedata offsets missing or invalid (%s): %s", PlatformName(), invalid.c_str());
+    return false;
+}
+
 void* ResolveSig(const nlohmann::json& gamedata, const modules::ModuleInfo& module, const char* name, char* errorOut, size_t errorOutLen)
 {
     std::string sig = FindPlatformSig(gamedata, name);
@@ -97,14 +135,24 @@ void* ResolveSig(const nlohmann::json& gamedata, const modules::ModuleInfo& modu
         SetError(errorOut, errorOutLen, "failed to parse '%s' sig: '%s'", name, sig.c_str());
         return nullptr;
     }
-    const auto matches = modules::FindPatternMatchesIn(module, bytes, wild);
-    if (matches.size() != 1)
+    if (!module)
+    {
+        SetError(errorOut, errorOutLen, "module unavailable while resolving '%s'", name);
+        return nullptr;
+    }
+    const auto matches = modules::TryFindPatternMatchesIn(module, bytes, wild);
+    if (!matches)
+    {
+        SetError(errorOut, errorOutLen, "KHook unavailable while resolving '%s'", name);
+        return nullptr;
+    }
+    if (matches->size() != 1)
     {
         if (errorOut && errorOutLen)
             std::snprintf(errorOut, errorOutLen, "sig '%s' expected one executable match, got %s", name,
-                          matches.empty() ? "0" : "2 or more");
+                          matches->empty() ? "0" : "2 or more");
         return nullptr;
     }
-    return matches.front();
+    return matches->front();
 }
 } // namespace cs2_sdk::gameconfig
